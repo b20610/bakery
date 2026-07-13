@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>위대한 베이커리 : 타이쿤 에디션</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            startup: { typeset: false }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    
+    <style>
+        body { 
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; 
+            background: linear-gradient(135deg, #efe5dc 0%, #d7c9bd 100%); 
+            color: #4e3d30; margin: 0; padding: 20px; 
+            display: flex; justify-content: center; align-items: center; min-height: 95vh; 
+        }
+        
+        .game-container { 
+            width: 100%; max-width: 950px; background: #fffbf7; padding: 25px; 
+            border-radius: 24px; box-shadow: 0 20px 50px rgba(110, 89, 73, 0.25); 
+            border: 6px solid #bda38f; box-sizing: border-box; position: relative;
+        }
+
+        .screen { display: none; }
+        .active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .home-layout { padding: 30px 0; text-align: center; }
+        .chef-avatar { font-size: 5rem; animation: float 3s ease-in-out infinite; display: inline-block; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .main-title { font-size: 2.6rem; color: #5c4033; margin: 10px 0 0 0; font-weight: 800; }
+        .main-subtitle { font-size: 1.1rem; color: #8d6e63; margin: 5px 0 25px 0; }
+        .best-board { background: #efe5dc; border: 2px dashed #bda38f; border-radius: 12px; padding: 12px; display: inline-block; font-weight: bold; margin-bottom: 25px; }
+        
+        .menu-btn { 
+            display: block; width: 300px; margin: 12px auto; padding: 16px; font-size: 1.15rem; font-weight: bold; 
+            color: white; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .btn-start { background: #846754; }
+        .btn-start:hover { transform: translateY(-2px); background: #4a3329; }
+        .btn-continue { background: #bc6c25; }
+        .btn-continue:hover { transform: translateY(-2px); }
+        .btn-continue:disabled { background: #dcdcdc; color: #aaa; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-guide { background: #6d4c41; }
+        .btn-guide:hover { transform: translateY(-2px); }
+
+        .modal-overlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 20; border-radius: 18px; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #fffbf7; width: 85%; max-width: 630px; padding: 30px; border-radius: 20px;
+            border: 4px solid #bda38f; max-height: 85%; overflow-y: auto; text-align: left;
+        }
+        .modal-content h3 { margin-top: 0; color: #bc6c25; border-bottom: 2px solid #bda38f; padding-bottom: 8px; text-align: center;}
+        .modal-content ul { padding-left: 20px; line-height: 1.65; }
+        .modal-content li { margin-bottom: 12px; color: #4e3d30; }
+
+        .game-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 25px; margin-top: 15px; align-items: stretch; }
+        .status-bar { display: flex; justify-content: space-between; background: #efe5dc; padding: 12px 20px; border-radius: 14px; font-weight: bold; font-size: 1.1rem; color: #5c4033; }
+        
+        .counter-zone { display: flex; flex-direction: column; gap: 15px; }
+        .customer-speech-bubble { 
+            background: #ffffff; border: 3px solid #bda38f; border-radius: 20px; padding: 18px; 
+            text-align: left; position: relative; min-height: 100px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .customer-name { font-weight: bold; color: #bc6c25; font-size: 1.1rem; margin-bottom: 8px; border-bottom: 1px dashed #efe5dc; padding-bottom: 4px; }
+        
+        .kitchen-scale-table { background: #f4ebe1; border: 3px solid #d7c9bd; border-radius: 20px; padding: 15px; text-align: center; }
+        .scale-display { 
+            background: #222; color: #00ff66; font-family: monospace; font-size: 1.1rem; padding: 8px; 
+            border-radius: 8px; border: 3px solid #444; margin-top: 8px; letter-spacing: 1px;
+        }
+
+        .chart-container { background: #ffffff; border: 2px solid #e7dfd5; border-radius: 15px; padding: 10px; margin-top: 15px; }
+        canvas { width: 100%; display: block; }
+
+        .shelf-zone { display: flex; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .recipe-card { 
+            flex: 1; background: #ffffff; border: 3px solid #e7dfd5; border-radius: 20px; padding: 25px 12px;
+            cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.04); box-sizing: border-box;
+        }
+        .recipe-card.disabled { pointer-events: none; opacity: 0.6; }
+        .recipe-card:hover { transform: translateY(-5px); border-color: #bc6c25; box-shadow: 0 10px 20px rgba(188,108,37,0.15); }
+        .math-box { 
+            background: #fdfaf6; border: 1px solid #ebdccb; border-radius: 10px; padding: 8px; 
+            font-family: 'Times New Roman', serif; font-style: italic; font-size: 1.15rem; color: #b5651d; margin: 15px 0; width: 85%; text-align: center;
+        }
+        .card-title { font-weight: bold; color: #5c4033; font-size: 1.15rem; }
+        .card-desc { font-size: 0.88rem; color: #8d6e63; text-align: center; line-height: 1.5; }
+
+        .oven-overlay { 
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(58, 45, 36, 0.96); border-radius: 18px; z-index: 10; 
+            flex-direction: column; justify-content: center; align-items: center; color: #fff; 
+        }
+
+        /* 결과 대형 피드백 카드 레이아웃 */
+        .review-overlay {
+            display: none; background: #fffbf4; border: 3px solid #bc6c25; border-radius: 20px;
+            padding: 22px; margin-top: 20px; text-align: left; animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .review-stars { font-size: 1.5rem; margin-bottom: 5px; }
+        .result-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        
+        .stat-compare-box {
+            display: grid; grid-template-columns: 1.1fr 1.2fr; gap: 20px; background: #ffffff;
+            border: 2px dashed #e7dfd5; border-radius: 14px; padding: 18px; margin: 10px 0; align-items: start;
+        }
+        .stat-vals { font-size: 0.95rem; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+        
+        /* [레퍼런스 반영] 시각 오해 방지 스페셜 안내 박스 스타일 */
+        .visual-warning-box {
+            background: #fff3e0; border: 1px solid #ffb74d; border-radius: 10px;
+            padding: 12px; margin-top: 8px; font-size: 0.88rem; color: #e65100; line-height: 1.5;
+        }
+        
+        .explain-box {
+            background: #fdfaf6; border-left: 5px solid #846754; padding: 15px; 
+            margin: 15px 0 20px 0; font-size: 0.95rem; line-height: 1.6; color: #55433c; border-radius: 0 10px 10px 0;
+        }
+        
+        .next-btn { 
+            background: #4a3329; color: white; padding: 16px; font-size: 1.15rem; font-weight: bold; 
+            border: none; border-radius: 12px; cursor: pointer; width: 100%; text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s;
+        }
+        .next-btn:hover { background: #2b1d17; }
+
+        .weekend-layout { padding: 20px 0; text-align: center; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 25px 0; }
+        .shop-item { 
+            background: #fff; border: 3px solid #e7dfd5; border-radius: 16px; padding: 15px; 
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            transition: all 0.2s; box-sizing: border-box; min-height: 220px;
+        }
+        .shop-item:hover { border-color: #bc6c25; transform: translateY(-3px); }
+        .shop-item.owned { background: #f0fdf4; border-color: #16a34a; }
+        .item-name { font-weight: bold; font-size: 1.05rem; color: #5c4033; margin-bottom: 5px; }
+        .item-desc { font-size: 0.85rem; color: #8d6e63; text-align: center; min-height: 36px; margin-bottom: 10px; }
+        .buy-btn { 
+            background: #bc6c25; color: white; border: none; padding: 10px 15px; font-weight: bold; 
+            border-radius: 8px; cursor: pointer; font-size: 0.9rem; width: 100%; transition: background 0.2s;
+        }
+        .buy-btn:hover:not(:disabled) { background: #96531b; }
+        .buy-btn:disabled { background: #dcdcdc; color: #999; cursor: not-allowed; }
+        .owned-badge { color: #16a34a; font-weight: bold; font-size: 0.95rem; margin-top: 8px; padding: 6px; background: #e8f5e9; width: 80%; border-radius: 8px; text-align: center; }
+        
+        .weekend-actions { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 25px; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="oven-layer" class="oven-overlay">
+        <div style="font-size: 6rem;">Oven ⏳</div>
+        <h2 style="margin-top:20px;">주간 예약분 빵 굽는 중...</h2>
+    </div>
+
+    <div id="guide-modal" class="modal-overlay" onclick="closeGuide()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3>📖 베이커리 경영 가이드북 (게임 방법)</h3>
+            <ul>
+                <li><b>일반 계량 컵 (분모 = $n$):</b> 손님이 주문한 물량이 전체(모집단)이거나, 본사 매뉴얼을 통해 진짜 평균인 모평균($\mu$)을 이미 정확히 알고 있을 때 선택합니다.</li>
+                <li><b>보정 숟가락 (분모 = $n - 1$):</b> 거대한 전체 물량 중 극히 일부인 표본(Sample)만 뽑아 조사할 때, 표본평균 사용으로 인해 발생하는 오차를 깎아주기(불편분산 추정) 위해 선택합니다.</li>
+                <li><b>대수의 법칙:</b> 만약 검사하는 데이터의 양($n$)이 수백 개 단위로 압도적으로 많다면 두 도구 간의 오차가 사라지므로 무엇을 고르든 통과됩니다.</li>
+                <li><b>평판 규칙:</b> 계산을 틀릴 때마다 평판(⭐)이 깎이며, 3개가 모두 소진되면 파산 처리되니 주의하세요!</li>
+            </ul>
+            <button class="menu-btn btn-start" style="width:100%; margin-top:15px;" onclick="closeGuide()">확인했습니다</button>
+        </div>
+    </div>
+
+    <div id="screen-home" class="screen active">
+        <div class="home-layout">
+            <div class="chef-avatar">📈👩‍🍳</div>
+            <div class="main-title">위대한 베이커리 : 타이쿤</div>
+            <div class="main-subtitle">주차별로 통계 지문과 데이터 구조가 진화하는 리얼 타이쿤</div>
+            <div id="best-score" class="best-board">🏆 역대 최고 누적 금고: 0원</div>
+            <button class="menu-btn btn-start" onclick="newGame()">🍞 새로운 빵집 경영 시작</button>
+            <button id="btn-continue" class="menu-btn btn-continue" onclick="continueGame()" disabled>⏳ 기존 세이브 이어하기</button>
+            <button class="menu-btn btn-guide" onclick="openGuide()">📖 게임 방법 / 통계 가이드</button>
+        </div>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div class="status-bar">
+            <div id="game-money">💰 금고: 0원</div>
+            <div id="game-time" style="color:#6d4c41; font-weight:800;">WEEK 1 - 월요일 🗓️</div>
+            <div id="game-hearts">❤️ 평판: ⭐⭐⭐</div>
+        </div>
+
+        <div class="game-grid">
+            <div class="counter-zone">
+                <div class="customer-speech-bubble">
+                    <div id="cust-avatar" class="customer-name">👤 주차 고객 (난이도 Lv.1)</div>
+                    <div id="cust-speech">주문 분석 중...</div>
+                </div>
+                
+                <div class="kitchen-scale-table">
+                    <div style="font-size:0.85rem; font-weight:bold; color:#8d6e63; margin-bottom: 5px;">📊 추출된 원본 데이터 및 분포</div>
+                    <div id="data-values" class="scale-display">n=0 [ - ]</div>
+                    <div class="chart-container">
+                        <canvas id="dataChart" style="height: 120px;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="shelf-zone">
+                <div id="card-n" class="recipe-card" onclick="startBaking('n')">
+                    <div class="card-title">일반 계량 컵</div>
+                    <div class="math-box">분모 = $n$</div>
+                    <div style="font-size: 2.3rem;">🫗</div>
+                    <div class="card-desc">모집단 전수조사 또는<br><b>모평균($\mu$)</b> 확정 시</div>
+                </div>
+                
+                <div id="card-n1" class="recipe-card" onclick="startBaking('n-1')">
+                    <div class="card-title">보정 숟가락</div>
+                    <div class="math-box">분모 = $n - 1$</div>
+                    <div style="font-size: 2.3rem;">🥄</div>
+                    <div class="card-desc">일반적인 <b>표본</b>에서<br>모분산을 추정할 때</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="review-result" class="review-overlay">
+            <div id="rev-stars" class="review-stars">⭐⭐⭐⭐⭐</div>
+            <div id="rev-status" class="result-title">공정 검사 결과</div>
+            
+            <div class="stat-compare-box">
+                <div style="height:170px; position:relative; width: 100%;">
+                    <canvas id="varianceCompareChart"></canvas>
+                </div>
+                <div>
+                    <div id="stat-vals-text" class="stat-vals"></div>
+                    <div id="visual-warning" class="visual-warning-box" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div id="rev-explain" class="explain-box">해설 내용</div>
+            <button class="next-btn" onclick="nextDay()">장부 마감 및 다음 날 영업 ➡️</button>
+        </div>
+    </div>
+
+    <div id="screen-weekend" class="screen">
+        <div class="weekend-layout">
+            <h2 style="color:#bc6c25; font-size:2rem; margin-bottom:5px;">🎉 주간 정산 및 베이커리 상점</h2>
+            <p id="settlement-info" style="font-size:1.1rem; color:#5c4033; font-weight:bold;"></p>
+            
+            <div class="shop-grid">
+                <div id="item-coffee" class="shop-item">
+                    <div style="font-size:2rem;">☕</div>
+                    <div class="item-name">에스프레소 머신</div>
+                    <div class="item-desc">매 주문 통과 시 <b>보상금 +20%</b></div>
+                    <button id="btn-buy-coffee" class="buy-btn" onclick="buyItem('coffee', 5000)">구매 (5,000원)</button>
+                    <div id="badge-coffee" class="owned-badge" style="display:none;">장착 완료 ✔️</div>
+                </div>
+                
+                <div id="item-flour" class="shop-item">
+                    <div style="font-size:2rem;">🍀</div>
+                    <div class="item-name">황금 밀가루</div>
+                    <div class="item-desc">오답 시 <b>25% 확률로 평판 보호</b></div>
+                    <button id="btn-buy-flour" class="buy-btn" onclick="buyItem('flour', 8000)">구매 (8,000원)</button>
+                    <div id="badge-flour" class="owned-badge" style="display:none;">장착 완료 ✔️</div>
+                </div>
+                
+                <div id="item-alba" class="shop-item">
+                    <div style="font-size:2rem;">💖</div>
+                    <div class="item-name">알바생 고용권</div>
+                    <div class="item-desc">구매 즉시 <b>평판 하트 1칸 회복</b></div>
+                    <button id="btn-buy-alba" class="buy-btn" onclick="buyItem('alba', 10000)">고용 (10,000원)</button>
+                </div>
+            </div>
+            
+            <div class="weekend-actions">
+                <button class="menu-btn btn-continue" style="width:350px; margin:0;" onclick="startNextWeek()">다음 주차 영업 개시 ➡️</button>
+                <button class="menu-btn btn-start" style="width:350px; margin:0; background:#5c4033;" onclick="goToHomeFromWeekend()">💾 저장 후 홈화면으로</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-gameover" class="screen">
+        <div style="padding: 40px 0; text-align:center;">
+            <h1 style="color:#c62828; font-size:3rem;">😭 최종 파산 처리</h1>
+            <p>평판이 모두 소진되어 영업이 강제 종료되었습니다.</p>
+            <button class="menu-btn btn-start" onclick="backToHome()">🔄 메인 화면으로 돌아가기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let money = 0; let hearts = 3; let currentWeek = 1; let currentDayIndex = 0; let lastQuizType = ''; 
+    let upgrades = { coffee: false, flour: false };
+    
+    const dayNames = ["월요일 🗓️", "화요일 🥖", "수요일 🍩", "목요일 🥐", "금요일 🥂"];
+    let currentCorrectAnswer = ''; let currentExplain = ''; let currentData = [];
+    let currentTargetMean = 13;
+    
+    let mainDistributionChart = null; let comparisonChartInstance = null;
+
+    const pool = [
+        {
+            type: "sample",
+            answer: "n-1",
+            speech: (w) => {
+                if (w === 1) return `소규모 제과점 거래처에서 샘플로 보낸 빵들입니다. 임의 추출된 <b>표본(Sample) 데이터</b>를 보고 실제 빵의 오차 모분산을 알 수 있게 계량해주세요.`;
+                if (w === 2) return `유통망 확장 조사를 위해 출고된 물량 중 <b>일부 품목만을 무작위 발췌 검사</b>한 내역입니다. 편향을 제어하여 본사의 참 분산을 추정하세요.`;
+                return `해당 생산 라인은 전수조사가 불가능합니다. 추정식의 자유도를 확보하고 <b>모분산의 불편추정량(Unbiased Estimator)</b> 성립을 만족하도록 연산 공정을 선택하세요.`;
+            },
+            gen: (w) => {
+                let n = w === 1 ? 4 : (w === 2 ? 8 : 15);
+                return Array.from({length: n}, () => 10 + Math.floor(Math.random() * 6));
+            },
+            explain: "<b>[표본분산 추정]</b> 표본 데이터 개수 자체는 적지만, 미지의 값을 추정하는 과정에서 진짜 모평균 대신 표본평균을 대입했기 때문에 변동성이 과소평가되는 왜곡이 생깁니다. 이를 완벽하게 보정해주기 위해 분모를 $n-1$로 깎아 연산해야 합니다."
+        },
+        {
+            type: "population",
+            answer: "n",
+            speech: (w) => {
+                if (w === 1) return `오늘 한정판 주문 제작 케이크는 딱 5개가 전부이며 <b>이게 전체 모집단</b>입니다. 5개 전량을 검사했으니 정확한 분산을 구하세요.`;
+                if (w === 2) return `이번 VIP 특별 패키지 오더는 생산된 수량이 곧 유일한 타겟입니다. <b>예외 없이 전수 조사 물량 전체</b>를 측정했으니 오차 계산을 적용하세요.`;
+                return `추출 조사가 아닌 <b>모집단(Population) 데이터 총량을 물리적으로 완벽 전수조사</b> 완료했습니다. 추정 왜곡 리스크가 0%인 정직한 분산식을 가동하세요.`;
+            },
+            gen: (w) => {
+                let n = w === 1 ? 5 : (w === 2 ? 9 : 14);
+                return Array.from({length: n}, () => 12 + Math.floor(Math.random() * 5));
+            },
+            explain: "<b>[모분산 확정 연산]</b> 데이터가 샘플이 아닌 '집단 전체(모집단)' 그 자체입니다! 어떠한 통계적 오차나 추정 편향 리스크가 개입되지 않으므로, 편차제곱합을 정직하게 전체 데이터 개수인 $n$으로 나누는 것이 교과서적인 모분산 공식입니다."
+        },
+        {
+            type: "known_mean",
+            answer: "n",
+            speech: (w) => {
+                if (w === 1) return `공장 기본 가이드북을 보니, 반죽 속 초코칩의 <b>진짜 전체 평균 개수가 $\\mu = 13$개</b>로 적혀 있네요! 샘플은 4개뿐이지만 진짜 모평균을 안답니다!`;
+                if (w === 2) return `식품안전처 표준 규격령에 따라 본 라인의 <b>설계 모평균은 $\\mu = 15$로 고정 확정</b>되어 법제화되어 있습니다. 추출본 데이터와 고정 매개변수를 연계해 연산하세요.`;
+                return `추출된 표본 세트이지만, 신뢰도 100%의 <b>사전 기지값인 모평균($\\mu$) 정보가 완벽히 확보</b>되어 있습니다. 정보 유실(자유도 상실) 현상이 원천 차단되었으니 최적의 공정을 선택하세요.`;
+            },
+            gen: (w) => {
+                currentTargetMean = w === 1 ? 13 : (w === 2 ? 15 : 18);
+                let n = w === 1 ? 4 : (w === 2 ? 7 : 11);
+                return Array.from({length: n}, () => currentTargetMean - 2 + Math.floor(Math.random() * 5));
+            },
+            explain: "<b>[모평균을 아는 경우]</b> 표본 데이터 개수 자체는 적지만, 미지의 값을 추정하는 표본평균($\\bar{X}$) 대신 사전에 완벽하게 밝혀진 '모평균($\\mu$)'을 직접 수식에 대입할 수 있습니다. 정보 손실(자유도 상실)이 전혀 없으므로 분모를 줄이지 않고 정직하게 $n$으로 나눕니다."
+        },
+        {
+            type: "large_n",
+            answer: "both",
+            speech: (w) => {
+                if (w === 1) return `마트 대량 납품용으로 빵 <b>300개</b>를 모조리 뽑아 검수 중입니다. 데이터 크기가 매우 크니 연산 공정을 골라 신속하게 처리합시다.`;
+                if (w === 2) return `대규모 프랜차이즈 공급 계약이 성사되어 <b>500개 이상의 초대형 물량</b>이 모조리 추출 테이블에 올랐습니다. 딜레이 없이 공정을 즉시 통과시키세요.`;
+                return `샘플의 크기가 통계적 한계점을 돌파하여 <b>초대량 빅데이터 레벨($n > 800$)</b>에 도달했습니다. 극학 수렴 연산을 적용해 즉각 출고 절차를 밟으십시오.`;
+            },
+            gen: (w) => {
+                let n = w === 1 ? 300 : (w === 2 ? 500 : 850);
+                return Array.from({length: 15}, () => 10 + Math.floor(Math.random() * 10));
+            },
+            explain: "<b>[대수의 법칙 적용]</b> 검사하는 표본의 데이터 개수($n$)가 수백 개 이상으로 압도적으로 많을 때는 분모를 $n$으로 나누나 $n-1$로 나누나 통계학적인 차이가 수학적으로 사라집니다(극한 수렴). 따라서 두 도구 중 어느 것을 선택해도 전부 정답 처리됩니다!"
+        }
+    ];
+
+    window.onload = function() { checkSaveData(); loadHighscore(); }
+
+    function changeScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function openGuide() { 
+        document.getElementById('guide-modal').style.display = 'flex'; 
+        setTimeout(triggerMathJax, 50);
+    }
+    function closeGuide() { document.getElementById('guide-modal').style.display = 'none'; }
+
+    function newGame() {
+        money = 0; hearts = 3; currentWeek = 1; currentDayIndex = 0; lastQuizType = '';
+        upgrades.coffee = false; upgrades.flour = false;
+        initGame();
+    }
+
+    function continueGame() {
+        loadGameData();
+        if (currentDayIndex >= 5) {
+            currentDayIndex = 5; 
+            changeScreen('screen-weekend');
+            document.getElementById('settlement-info').innerText = `현재 WEEK ${currentWeek} 마감 | 자산: ${money.toLocaleString()}원`;
+            updateShopUI();
+        } else {
+            initGame();
+        }
+    }
+
+    function initGame() {
+        document.getElementById('game-money').innerText = `💰 금고: ${money.toLocaleString()}원`;
+        updateHeartsUI();
+        changeScreen('screen-game');
+        loadBusinessDay();
+    }
+
+    function triggerMathJax() {
+        if (window.MathJax && window.MathJax.typeset) { window.MathJax.typeset(); }
+    }
+
+    function drawChart(data) {
+        const ctx = document.getElementById('dataChart').getContext('2d');
+        const counts = {};
+        data.forEach(x => counts[x] = (counts[x] || 0) + 1);
+        const labels = Object.keys(counts).map(Number).sort((a,b)=>a-b);
+
+        if (mainDistributionChart) mainDistributionChart.destroy();
+        mainDistributionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ data: labels.map(l => counts[l]), backgroundColor: '#d97706', borderRadius: 4 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { ticks: { stepSize: 1 } } }
+            }
+        });
+    }
+
+    function loadBusinessDay() {
+        if(currentDayIndex > 4) currentDayIndex = 4;
+        document.getElementById('game-time').innerText = `WEEK ${currentWeek} - ${dayNames[currentDayIndex]}`;
+        
+        let levelText = currentWeek === 1 ? "Lv.1 초급" : (currentWeek === 2 ? "Lv.2 중급" : "Lv.3 고급");
+        document.getElementById('cust-avatar').innerText = `👤 주차 고객 (난이도 ${levelText})`;
+
+        let available = pool.filter(q => q.type !== lastQuizType);
+        let quiz = available[Math.floor(Math.random() * available.length)];
+        lastQuizType = quiz.type;
+        
+        currentData = quiz.gen(currentWeek); 
+        currentCorrectAnswer = quiz.answer; 
+        currentExplain = quiz.explain;
+        
+        document.getElementById('cust-speech').innerHTML = `"${quiz.speech(currentWeek)}"`;
+        
+        let displayCount = lastQuizType === 'large_n' ? (currentWeek === 1 ? 300 : (currentWeek === 2 ? 500 : 850)) : currentData.length;
+        document.getElementById('data-values').innerText = `n=${displayCount} [ ${currentData.slice(0,4).join(', ')} ... ]`;
+        
+        drawChart(currentData);
+        document.getElementById('review-result').style.display = 'none';
+        toggleCards(true);
+        setTimeout(triggerMathJax, 50);
+    }
+
+    function startBaking(choice) {
+        toggleCards(false);
+        document.getElementById('oven-layer').style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('oven-layer').style.display = 'none';
+            evaluateResult(choice);
+        }, 500);
+    }
+
+    function evaluateResult(choice) {
+        let isCorrect = (choice === currentCorrectAnswer) || (currentCorrectAnswer === 'both');
+        const n = currentData.length;
+        const mean = currentData.reduce((a,b)=>a+b,0)/n;
+        const trueMean = (lastQuizType === 'known_mean') ? currentTargetMean : mean;
+
+        const diffMeanSq = currentData.reduce((acc,v)=>acc+Math.pow(v-mean,2), 0);
+        const diffTrueMeanSq = currentData.reduce((acc,v)=>acc+Math.pow(v-trueMean,2), 0);
+
+        let varN = diffMeanSq / n;
+        let varN1 = n > 1 ? diffMeanSq / (n - 1) : varN;
+        
+        let varTrue = varN1;
+        if (lastQuizType === 'population') varTrue = varN;
+        else if (lastQuizType === 'known_mean') varTrue = diffTrueMeanSq / n;
+        
+        if (lastQuizType === 'large_n') {
+            varTrue = 3.75; varN = 3.72; varN1 = 3.75;
+        }
+
+        document.getElementById('stat-vals-text').innerHTML = `
+            <div>📊 <b>통계량 직접 비교:</b></div>
+            <div>• 목표 분산 ($\sigma^2$): <span style="color:#2e7d32; font-weight:bold;">${varTrue.toFixed(2)}</span></div>
+            <div>• 계량 컵 분산 ($n$): <span style="color:#c62828; font-weight:bold;">${varN.toFixed(2)}</span></div>
+            <div>• 숟가락 분산 ($n-1$): <span style="color:#bc6c25; font-weight:bold;">${varN1.toFixed(2)}</span></div>
+        `;
+
+        // [핵심 기능 복구] 착시 오해 방지 경고 박스 텍스트 가변 출력
+        const warningBox = document.getElementById('visual-warning');
+        if ((lastQuizType === 'known_mean' || lastQuizType === 'population') && Math.abs(varN1 - varTrue) < Math.abs(varN - varTrue)) {
+            warningBox.style.display = 'block';
+            warningBox.innerHTML = `⚠️ <b>[시각 오해 방지 안내]</b> 그래프상으로 '숟가락($n-1$)'이 진짜 모분산에 우연히 더 가깝게 보일 수 있습니다! 하지만 이는 표본이 소량이어서 발생한 '우연한 샘플링 오차'일 뿐입니다. 진짜 평균인 $\mu$를 알고 대입할 때는 수학적/이론적으로 무조건 <b>'일반 계량 컵($n$)'</b> 공식만이 완벽한 정답입니다.`;
+        } else {
+            warningBox.style.display = 'none';
+        }
+
+        const compareCtx = document.getElementById('varianceCompareChart').getContext('2d');
+        if (comparisonChartInstance) comparisonChartInstance.destroy();
+        comparisonChartInstance = new Chart(compareCtx, {
+            type: 'bar',
+            data: {
+                labels: ['목표 모분산', '컵 (분모 n)', '숟가락 (n-1)'],
+                datasets: [{ 
+                    data: [varTrue, varN, varN1], 
+                    backgroundColor: ['#2e7d32', '#c62828', '#b45309'],
+                    borderRadius: 4
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        document.getElementById('review-result').style.display = 'block';
+        document.getElementById('rev-explain').innerHTML = currentExplain;
+
+        if (isCorrect) {
+            let reward = 7000;
+            if (upgrades.coffee) reward = Math.floor(reward * 1.2);
+            money += reward;
+            document.getElementById('game-money').innerText = `💰 금고: ${money.toLocaleString()}원`;
+            document.getElementById('rev-status').innerHTML = `<span style="color:#16a34a;">🎯 납품 통과! (+${reward.toLocaleString()}원)</span>`;
+            document.getElementById('rev-stars').innerText = "⭐⭐⭐⭐⭐";
+        } else {
+            if (upgrades.flour && Math.random() < 0.25) {
+                document.getElementById('rev-status').innerHTML = `<span style="color:#d97706;">🍀 밀가루 마법으로 평판 방어!</span>`;
+                document.getElementById('rev-stars').innerText = "⭐⭐⭐";
+            } else {
+                hearts--; updateHeartsUI();
+                document.getElementById('rev-status').innerHTML = `<span style="color:#dc2626;">📉 규격 오류 및 납품 반려</span>`;
+                document.getElementById('rev-stars').innerText = "⭐";
+            }
+        }
+        saveGame();
+        updateHighscore();
+        setTimeout(triggerMathJax, 50);
+    }
+
+    function nextDay() {
+        if (hearts <= 0) { changeScreen('screen-gameover'); return; }
+        currentDayIndex++;
+        if (currentDayIndex >= 5) {
+            changeScreen('screen-weekend');
+            document.getElementById('settlement-info').innerText = `현재 WEEK ${currentWeek} 마감 | 자산: ${money.toLocaleString()}원`;
+            updateShopUI();
+        } else {
+            loadBusinessDay();
+        }
+    }
+
+    function startNextWeek() { currentDayIndex = 0; currentWeek++; saveGame(); initGame(); }
+    function goToHomeFromWeekend() { saveGame(); checkSaveData(); changeScreen('screen-home'); }
+    
+    function buyItem(type, cost) { 
+        if (money >= cost) { 
+            money -= cost; 
+            if(type === 'alba') {
+                hearts = Math.min(3, hearts + 1);
+            } else {
+                upgrades[type] = true; 
+            }
+            saveGame(); 
+            document.getElementById('settlement-info').innerText = `현재 WEEK ${currentWeek} 마감 | 자산: ${money.toLocaleString()}원`;
+            updateShopUI(); 
+        } 
+    }
+
+    function updateShopUI() { 
+        const btnCoffee = document.getElementById('btn-buy-coffee');
+        const badgeCoffee = document.getElementById('badge-coffee');
+        const itemCoffee = document.getElementById('item-coffee');
+        if (upgrades.coffee) {
+            btnCoffee.style.display = 'none';
+            badgeCoffee.style.display = 'block';
+            itemCoffee.classList.add('owned');
+        } else {
+            btnCoffee.style.display = 'block';
+            badgeCoffee.style.display = 'none';
+            itemCoffee.classList.remove('owned');
+            btnCoffee.disabled = (money < 5000);
+        }
+
+        const btnFlour = document.getElementById('btn-buy-flour');
+        const badgeFlour = document.getElementById('badge-flour');
+        const itemFlour = document.getElementById('item-flour');
+        if (upgrades.flour) {
+            btnFlour.style.display = 'none';
+            badgeFlour.style.display = 'block';
+            itemFlour.classList.add('owned');
+        } else {
+            btnFlour.style.display = 'block';
+            badgeFlour.style.display = 'none';
+            itemFlour.classList.remove('owned');
+            btnFlour.disabled = (money < 8000);
+        }
+
+        const btnAlba = document.getElementById('btn-buy-alba');
+        btnAlba.disabled = (money < 10000 || hearts >= 3);
+    }
+
+    function saveGame() { 
+        localStorage.setItem('ibakery_money', money); 
+        localStorage.setItem('ibakery_hearts', hearts); 
+        localStorage.setItem('ibakery_week', currentWeek); 
+        localStorage.setItem('ibakery_dayidx', currentDayIndex); 
+        localStorage.setItem('ibakery_up_coffee', upgrades.coffee ? 'Y' : 'N');
+        localStorage.setItem('ibakery_up_flour', upgrades.flour ? 'Y' : 'N');
+    }
+
+    function loadGameData() {
+        money = parseInt(localStorage.getItem('ibakery_money')) || 0;
+        hearts = parseInt(localStorage.getItem('ibakery_hearts')) || 3;
+        currentWeek = parseInt(localStorage.getItem('ibakery_week')) || 1;
+        currentDayIndex = parseInt(localStorage.getItem('ibakery_dayidx')) || 0;
+        upgrades.coffee = localStorage.getItem('ibakery_up_coffee') === 'Y';
+        upgrades.flour = localStorage.getItem('ibakery_up_flour') === 'Y';
+    }
+
+    function checkSaveData() { document.getElementById('btn-continue').disabled = (localStorage.getItem('ibakery_week') === null); }
+    function updateHeartsUI() { let s=''; for(let i=0;i<3;i++) s+=i<hearts?'⭐':'🖤'; document.getElementById('game-hearts').innerText=`❤️ 평판: ${s}`; }
+    function toggleCards(e) { document.getElementById('card-n').style.pointerEvents=e?'auto':'none'; document.getElementById('card-n1').style.pointerEvents=e?'auto':'none'; }
+    function backToHome() { changeScreen('screen-home'); checkSaveData(); }
+    
+    function loadHighscore() {
+        let best = parseInt(localStorage.getItem('ibakery_best')) || 0;
+        document.getElementById('best-score').innerText = `🏆 역대 최고 누적 금고: ${best.toLocaleString()}원`;
+    }
+    function updateHighscore() {
+        let best = parseInt(localStorage.getItem('ibakery_best')) || 0;
+        if(money > best) {
+            localStorage.setItem('ibakery_best', money);
+            loadHighscore();
+        }
+    }
+</script>
+</body>
+</html>
